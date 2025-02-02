@@ -1,3 +1,4 @@
+import re
 from textnode import TextType, TextNode
 
 def split_nodes_delimiter(old_nodes, delimiter, text_type):
@@ -9,7 +10,7 @@ def split_nodes_delimiter(old_nodes, delimiter, text_type):
             continue
 
         if node.text.count(delimiter) % 2 != 0:
-            raise Exception("Missing a closing delimiter")
+            raise Exception("Missing a delimiter")
         
         fragment_list = node.text.split(delimiter)
 
@@ -23,5 +24,8 @@ def split_nodes_delimiter(old_nodes, delimiter, text_type):
 
     return new_nodes 
 
+def extact_markdown_images(text):
+    return re.findall(r"!\[([^\[\]]*)\]\(([^\(\)]*)\)", text)
 
-
+def extract_markdown_links(text):
+    return re.findall(r"(?<!!)\[([^\[\]]*)\]\(([^\(\)]*)\)", text)

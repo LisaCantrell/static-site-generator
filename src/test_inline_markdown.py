@@ -1,7 +1,7 @@
 import unittest
 
 from textnode import TextNode, TextType
-from markdownhandling import split_nodes_delimiter
+from inline_markdown import split_nodes_delimiter, extact_markdown_images, extract_markdown_links
 
 class Test_MarkdownHandling(unittest.TestCase):
     def test_eq(self):
@@ -36,7 +36,7 @@ class Test_MarkdownHandling(unittest.TestCase):
         node2 = TextNode("This is `more code` block", TextType.TEXT)
         node3 = TextNode("look here is `even more code`", TextType.TEXT)
         new_nodes = split_nodes_delimiter([node, node2, node3], "`", TextType.CODE)
-        self.assertEqual(
+        self.assertListEqual(
             new_nodes, [
             TextNode("This is text with a ", TextType.TEXT),
             TextNode("code block", TextType.CODE),
@@ -48,3 +48,121 @@ class Test_MarkdownHandling(unittest.TestCase):
             TextNode("even more code", TextType.CODE),
                         ]
                     )
+    
+    def test_bold(self):
+        node = TextNode("This is text with a **bolded** word", TextType.TEXT)
+        new_nodes = split_nodes_delimiter([node], "**", TextType.BOLD)
+        self.assertListEqual(
+            [
+                TextNode("This is text with a ", TextType.TEXT),
+                TextNode("bolded", TextType.BOLD),
+                TextNode(" word", TextType.TEXT),
+            ],
+            new_nodes
+        )
+    
+    def test_bolded_multiword(self):
+        node = TextNode(
+            "This is text with a **bolded word** and **another**", TextType.TEXT
+        )
+        new_nodes = split_nodes_delimiter([node], "**", TextType.BOLD)
+        self.assertListEqual(
+            [
+                TextNode("This is text with a ", TextType.TEXT),
+                TextNode("bolded word", TextType.BOLD),
+                TextNode(" and ", TextType.TEXT),
+                TextNode("another", TextType.BOLD),
+            ],
+            new_nodes,
+        )
+
+    def test_italic(self):
+        node = TextNode("This is text with an *italic* word", TextType.TEXT)
+        new_nodes = split_nodes_delimiter([node], "*", TextType.ITALIC)
+        self.assertListEqual(
+            [
+                TextNode("This is text with an ", TextType.TEXT),
+                TextNode("italic", TextType.ITALIC),
+                TextNode(" word", TextType.TEXT),
+            ],
+            new_nodes
+        )
+    
+    def test_bold_and_italic(self):
+        node = TextNode("**bold** and *italic*", TextType.TEXT)
+        new_nodes = split_nodes_delimiter([node], "**", TextType.BOLD)
+        new_nodes = split_nodes_delimiter(new_nodes, "*", TextType.ITALIC)
+        self.assertListEqual(
+            [
+                TextNode("bold", TextType.BOLD),
+                TextNode(" and ", TextType.TEXT),
+                TextNode("italic", TextType.ITALIC),
+            ],
+            new_nodes,
+        )
+
+    def test_extract_eq(self):
+        test_text = "This is text with a ![rick roll](https://i.imgur.com/aKaOqIh.gif) and ![obi wan](https://i.imgur.com/fJRm4Vk.jpeg)"
+        self.assertListEqual(
+            [
+                ("rick roll", "https://i.imgur.com/aKaOqIh.gif"),
+                ("obi wan", "https://i.imgur.com/fJRm4Vk.jpeg"),
+            ],
+            extact_markdown_images(test_text)
+        )
+
+    def test_extra_bracket_extract(self):
+        test_text = "This [is] text with a ![rick roll](https://i.imgur.com/aKaOqIh.gif) and ![obi wan](https://i.imgur.com/fJRm4Vk.jpeg)"
+        # img_data = extact_markdown_images(test_text)
+        self.assertListEqual(
+            [
+                ("rick roll", "https://i.imgur.com/aKaOqIh.gif"),
+                ("obi wan", "https://i.imgur.com/fJRm4Vk.jpeg"),
+            ],
+           extact_markdown_images(test_text)
+        )
+
+    def test_missing_bang_extract(self):
+        test_text = "This [is] text with a [rick roll](https://i.imgur.com/aKaOqIh.gif) and ![obi wan](https://i.imgur.com/fJRm4Vk.jpeg)"
+        # img_data = extact_markdown_images(test_text)
+        self.assertNotEqual(
+            [
+                ("rick roll", "https://i.imgur.com/aKaOqIh.gif"),
+                ("obi wan", "https://i.imgur.com/fJRm4Vk.jpeg"),
+            ],
+           extact_markdown_images(test_text)
+        )
+
+    def test_missing_https_extract(self):
+        test_text = "This [is] text with a ![rick roll](i.imgur.com/aKaOqIh.gif) and ![obi wan](https://i.imgur.com/fJRm4Vk.jpeg)"
+        # img_data = extact_markdown_images(test_text)
+        self.assertNotEqual(
+            [
+                ("rick roll", "https://i.imgur.com/aKaOqIh.gif"),
+                ("obi wan", "https://i.imgur.com/fJRm4Vk.jpeg"),
+            ],
+           extact_markdown_images(test_text)
+        )
+
+    def test_no_alt_extract(self):
+        test_text = "This [is] text with a ![rick roll](https://i.imgur.com/aKaOqIh.gif) and ![](https://i.imgur.com/fJRm4Vk.jpeg)"
+        # img_data = extact_markdown_images(test_text)
+        self.assertEqual(
+            [
+                ("rick roll", "https://i.imgur.com/aKaOqIh.gif"),
+                ("", "https://i.imgur.com/fJRm4Vk.jpeg"),
+            ],
+           extact_markdown_images(test_text)
+        )
+    
+    def test_extract_markdown_links(self):
+        matches = extract_markdown_links(
+            "This is text with a [link](https://boot.dev) and [another link](https://blog.boot.dev)"
+        )
+        self.assertListEqual(
+            [
+                ("link", "https://boot.dev"),
+                ("another link", "https://blog.boot.dev"),
+            ],
+            matches,
+        )
