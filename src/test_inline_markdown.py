@@ -1,9 +1,10 @@
 import unittest
 
 from textnode import TextNode, TextType
-from inline_markdown import split_nodes_delimiter, extact_markdown_images, extract_markdown_links
+from inline_markdown import (split_nodes_delimiter, extract_markdown_images,
+                              extract_markdown_links, split_nodes_link, split_nodes_image)
 
-class Test_MarkdownHandling(unittest.TestCase):
+class TestInlineMarkdown(unittest.TestCase):
     def test_eq(self):
         node = TextNode("This is text with a `code block` word", TextType.TEXT)
         new_nodes = split_nodes_delimiter([node], "`", TextType.CODE)
@@ -108,7 +109,7 @@ class Test_MarkdownHandling(unittest.TestCase):
                 ("rick roll", "https://i.imgur.com/aKaOqIh.gif"),
                 ("obi wan", "https://i.imgur.com/fJRm4Vk.jpeg"),
             ],
-            extact_markdown_images(test_text)
+            extract_markdown_images(test_text)
         )
 
     def test_extra_bracket_extract(self):
@@ -119,7 +120,7 @@ class Test_MarkdownHandling(unittest.TestCase):
                 ("rick roll", "https://i.imgur.com/aKaOqIh.gif"),
                 ("obi wan", "https://i.imgur.com/fJRm4Vk.jpeg"),
             ],
-           extact_markdown_images(test_text)
+           extract_markdown_images(test_text)
         )
 
     def test_missing_bang_extract(self):
@@ -130,7 +131,7 @@ class Test_MarkdownHandling(unittest.TestCase):
                 ("rick roll", "https://i.imgur.com/aKaOqIh.gif"),
                 ("obi wan", "https://i.imgur.com/fJRm4Vk.jpeg"),
             ],
-           extact_markdown_images(test_text)
+           extract_markdown_images(test_text)
         )
 
     def test_missing_https_extract(self):
@@ -141,7 +142,7 @@ class Test_MarkdownHandling(unittest.TestCase):
                 ("rick roll", "https://i.imgur.com/aKaOqIh.gif"),
                 ("obi wan", "https://i.imgur.com/fJRm4Vk.jpeg"),
             ],
-           extact_markdown_images(test_text)
+           extract_markdown_images(test_text)
         )
 
     def test_no_alt_extract(self):
@@ -152,7 +153,7 @@ class Test_MarkdownHandling(unittest.TestCase):
                 ("rick roll", "https://i.imgur.com/aKaOqIh.gif"),
                 ("", "https://i.imgur.com/fJRm4Vk.jpeg"),
             ],
-           extact_markdown_images(test_text)
+           extract_markdown_images(test_text)
         )
     
     def test_extract_markdown_links(self):
@@ -165,4 +166,87 @@ class Test_MarkdownHandling(unittest.TestCase):
                 ("another link", "https://blog.boot.dev"),
             ],
             matches,
+        )
+
+    def test_split_link_eq(self):
+        node = TextNode(
+            "This is text with a link [to boot dev](https://www.boot.dev) and [to youtube](https://www.youtube.com/@bootdotdev)",
+            TextType.TEXT,
+        )
+        self.assertListEqual(
+            [
+                TextNode("This is text with a link ", TextType.TEXT),
+                TextNode("to boot dev", TextType.LINK, "https://www.boot.dev"),
+                TextNode(" and ", TextType.TEXT),
+                TextNode(
+                    "to youtube", TextType.LINK, "https://www.youtube.com/@bootdotdev"
+                ),
+            ],
+            split_nodes_link([node])
+        )
+    
+    def test_split_link_more_text(self):
+        node = TextNode(
+        "This is text with a link [to boot dev](https://www.boot.dev) and [to youtube](https://www.youtube.com/@bootdotdev) extra text",
+        TextType.TEXT,
+        )
+        self.assertListEqual(
+            [
+                TextNode("This is text with a link ", TextType.TEXT),
+                TextNode("to boot dev", TextType.LINK, "https://www.boot.dev"),
+                TextNode(" and ", TextType.TEXT),
+                TextNode(
+                    "to youtube", TextType.LINK, "https://www.youtube.com/@bootdotdev"
+                ),
+                TextNode(" extra text", TextType.TEXT),
+            ],
+            split_nodes_link([node])
+        )
+
+    def test_split_image_noteq(self):
+        node = TextNode(
+            "This is text with an image ![to boot image](https://www.boot.jpg) and ![to cat](https://www.mycat.png) extra",
+            TextType.TEXT,
+        )
+        self.assertNotEqual(
+            [
+                TextNode("This is text with a link ", TextType.TEXT),
+                TextNode("to boot dev", TextType.LINK, "https://www.boot.dev"),
+                TextNode(" and ", TextType.TEXT),
+                TextNode(
+                    "to youtube", TextType.LINK, "https://www.youtube.com/@bootdotdev"
+                ),
+            ],
+            split_nodes_image([node])
+        )
+
+    def test_split_image_eq(self):
+        node = TextNode(
+            "This is text with an image ![to boot image](https://www.boot.jpg) and ![to cat](https://www.mycat.png) extra",
+            TextType.TEXT,
+        )
+        self.assertListEqual(
+            [
+                TextNode("This is text with an image ", TextType.TEXT),
+                TextNode("to boot image", TextType.IMAGE, "https://www.boot.jpg"),
+                TextNode(" and ", TextType.TEXT),
+                TextNode(
+                    "to cat", TextType.IMAGE, "https://www.mycat.png"
+                ),
+                TextNode(" extra", TextType.TEXT),
+            ],
+            split_nodes_image([node])
+        )
+
+    def test_split_image_single(self):
+        node = TextNode(
+            "![image](https://www.example.COM/IMAGE.PNG)",
+            TextType.TEXT,
+        )
+        new_nodes = split_nodes_image([node])
+        self.assertListEqual(
+            [
+                TextNode("image", TextType.IMAGE, "https://www.example.COM/IMAGE.PNG"),
+            ],
+            new_nodes,
         )

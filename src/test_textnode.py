@@ -36,7 +36,6 @@ class TestTextNode(unittest.TestCase):
             "TextNode(This is a text node, text, https://www.boot.dev)", repr(node)
         )
 
-
     def test_text_text_to_html_vs_leafnode(self):
         text_node = TextNode("testing plain text", TextType.TEXT)
         converted_to_html = text_node.text_node_to_html_node()
