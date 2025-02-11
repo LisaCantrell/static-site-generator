@@ -9,6 +9,7 @@ from block_markdown import (
     block_type_olist,
     block_type_ulist,
     block_type_quote,
+    extract_title
 )
 
 
@@ -151,4 +152,18 @@ this is paragraph text
         self.assertEqual(
             html,
             "<div><blockquote>This is a blockquote block</blockquote><p>this is paragraph text</p></div>",
+        )
+    def test_extract_title(self):
+        md = """
+> This is a
+> blockquote block
+
+# Hello
+
+this is paragraph text
+
+"""
+        self.assertEqual(
+            extract_title(md),
+            "Hello"
         )
